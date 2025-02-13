@@ -1,0 +1,228 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+df = pd.read_csv('/content/weatherAUS.csv')
+df.head()
+df.describe()
+df.shape
+df.info()
+df = df.drop(["Evaporation","Sunshine","Cloud9am","Cloud3pm","Location", "Date"], axis =1)
+df.head()
+df = df.dropna(axis = 0)
+df.shape
+df.columns
+from sklearn.preprocessing import LabelEncoder
+le = LabelEncoder()
+df['WindGustDir'] = le.fit_transform(df['WindGustDir'])
+df['WindDir9am'] = le.fit_transform(df['WindDir9am'])
+df['WindDir3pm'] = le.fit_transform(df['WindDir3pm'])
+df['RainToday'] = le.fit_transform(df['RainToday'])
+df['RainTomorrow'] = le.fit_transform(df['RainTomorrow'])
+x = df.drop(['RainTomorrow'], axis = 1)
+y = df['RainTomorrow']
+x.head()
+plt.figure(figsize = (8,8))
+sns.scatterplot(x = 'MaxTemp', y = 'MinTemp', hue = 'RainTomorrow' , palette = 'inferno',data = df)
+plt.figure(figsize = (8,8))
+sns.scatterplot(x = 'Humidity9am', y = 'Temp9am', hue = 'RainTomorrow' , palette = 'inferno',data = df)
+plt.figure(figsize = (8,8))
+sns.heatmap(df.corr())
+from sklearn.model_selection import train_test_split
+x_train, x_test, y_train, y_test = train_test_split(x,y, test_size = 0.2)
+from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
+from sklearn.linear_model import LogisticRegression
+lr = LogisticRegression()
+lr.fit(x_train,y_train)
+predictions = lr.predict(x_test)
+print(confusion_matrix(y_test, predictions))
+print(classification_report(y_test, predictions))
+print(accuracy_score(y_test, predictions))
+from sklearn.tree import DecisionTreeClassifier
+dt = DecisionTreeClassifier()
+dt.fit(x_train,y_train)
+predictions = dt.predict(x_test)
+print(confusion_matrix(y_test, predictions))
+print(classification_report(y_test, predictions))
+print(accuracy_score(y_test, predictions))
+from sklearn.ensemble import RandomForestClassifier
+rf = RandomForestClassifier()
+rf.fit(x_train,y_train)
+predictions = rf.predict(x_test)
+print(confusion_matrix(y_test, predictions))
+print(classification_report(y_test, predictions))
+print(accuracy_score(y_test, predictions))
+from sklearn.neighbors import KNeighborsClassifier
+knn = KNeighborsClassifier(n_neighbors=5)
+knn.fit(x_train, y_train)
+predictions = knn.predict(x_test)
+print(confusion_matrix(y_test, predictions))
+print(classification_report(y_test, predictions))
+print(accuracy_score(y_test, predictions))
+import matplotlib.pyplot as plt
+import numpy as np
+from sklearn.metrics import accuracy_score
+
+
+
+def calculate_accuracy(model, x_test, y_test):
+    """Calculates and returns the accuracy of a model."""
+    predictions = model.predict(x_test)
+    return accuracy_score(y_test, predictions)
+
+
+lr_accuracy = calculate_accuracy(lr, x_test, y_test)
+dt_accuracy = calculate_accuracy(dt, x_test, y_test)
+rf_accuracy = calculate_accuracy(rf, x_test, y_test)
+knn_accuracy = calculate_accuracy(knn, x_test, y_test)
+
+
+
+models = ['Logistic Regression', 'Decision Tree', 'Random Forest', 'KNN']
+accuracies = [lr_accuracy, dt_accuracy, rf_accuracy, knn_accuracy]
+
+
+plt.figure(figsize=(10, 6))
+plt.bar(models, accuracies, color=['blue', 'green', 'red', 'purple'])
+plt.title('Accuracy Comparison of Classification Algorithms')
+plt.xlabel('Algorithm')
+plt.ylabel('Accuracy')
+plt.ylim([0, 1])
+plt.xticks(rotation=45, ha='right')
+plt.tight_layout()
+plt.show()
+
+
+for model, accuracy in zip(models, accuracies):
+    print(f'{model}: {accuracy:.2f}')
+import pandas as pd
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
+from sklearn.preprocessing import LabelEncoder
+import joblib
+
+
+def preprocess_data(df):
+
+    for column in df.columns:
+        if df[column].dtype == 'object':
+            df[column].fillna(df[column].mode()[0], inplace=True)
+        else:
+            df[column].fillna(df[column].mean(), inplace=True)
+
+    le_WindGustDir = LabelEncoder()
+    le_WindDir9am = LabelEncoder()
+    le_WindDir3pm = LabelEncoder()
+    le_RainToday = LabelEncoder()
+
+
+    df['WindGustDir'] = le_WindGustDir.fit_transform(df['WindGustDir'])
+    df['WindDir9am'] = le_WindDir9am.fit_transform(df['WindDir9am'])
+    df['WindDir3pm'] = le_WindDir3pm.fit_transform(df['WindDir3pm'])
+    df['RainToday'] = le_RainToday.fit_transform(df['RainToday'])
+
+
+
+
+    x = df[['WindGustDir', 'WindDir9am', 'WindDir3pm', 'RainToday',
+            'Temp9am', 'Temp3pm', 'MinTemp', 'MaxTemp', 'WindSpeed9am',
+            'WindSpeed3pm', 'Humidity9am', 'Humidity3pm', 'Pressure9am',
+            'Pressure3pm', 'Rainfall', 'WindGustSpeed']]
+    y = df['RainTomorrow']
+
+    return x, y
+
+
+def check_class_balance(y):
+    print("\nClass Distribution in Dataset:")
+    print(y.value_counts())
+
+
+def train_and_save_model(x, y):
+
+    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=42)
+
+
+    model = RandomForestClassifier(random_state=42, class_weight="balanced")
+    model.fit(x_train, y_train)
+
+
+    y_pred = model.predict(x_test)
+    accuracy = accuracy_score(y_test, y_pred)
+    print(f"Model Accuracy: {accuracy * 100:.2f}%")
+
+    joblib.dump(model, "trained_model.pkl")
+    print("Model saved as 'trained_model.pkl'")
+
+def predict_rain():
+    print("\nPlease provide the following weather data inputs:")
+    WindGustDir = input("Enter WindGustDir (e.g., 'N', 'S', 'E', 'W'): ")
+    WindDir9am = input("Enter WindDir9am (e.g., 'N', 'S', 'E', 'W'): ")
+    WindDir3pm = input("Enter WindDir3pm (e.g., 'N', 'S', 'E', 'W'): ")
+    RainToday = input("Did it rain today? (Yes/No): ")
+    Temp9am = float(input("Enter Temp9am (in Celsius): "))
+    Temp3pm = float(input("Enter Temp3pm (in Celsius): "))
+    MinTemp = float(input("Enter MinTemp (in Celsius): "))
+    MaxTemp = float(input("Enter MaxTemp (in Celsius): "))
+    WindSpeed9am = float(input("Enter WindSpeed9am (in km/h): "))
+    WindSpeed3pm = float(input("Enter WindSpeed3pm (in km/h): "))
+    Humidity9am = float(input("Enter Humidity9am (in percentage): "))
+    Humidity3pm = float(input("Enter Humidity3pm (in percentage): "))
+    Pressure9am = float(input("Enter Pressure9am (in hPa): "))
+    Pressure3pm = float(input("Enter Pressure3pm (in hPa): "))
+    Rainfall = float(input("Enter Rainfall (in mm): "))
+    WindGustSpeed = float(input("Enter WindGustSpeed (in km/h): "))
+
+
+    try:
+        input_data = pd.DataFrame({
+            'WindGustDir': [WindGustDir],
+            'WindDir9am': [WindDir9am],
+            'WindDir3pm': [WindDir3pm],
+            'RainToday': [RainToday],
+            'Temp9am': [Temp9am],
+            'Temp3pm': [Temp3pm],
+            'MinTemp': [MinTemp],
+            'MaxTemp': [MaxTemp],
+            'WindSpeed9am': [WindSpeed9am],
+            'WindSpeed3pm': [WindSpeed3pm],
+            'Humidity9am': [Humidity9am],
+            'Humidity3pm': [Humidity3pm],
+            'Pressure9am': [Pressure9am],
+            'Pressure3pm': [Pressure3pm],
+            'Rainfall': [Rainfall],
+            'WindGustSpeed': [WindGustSpeed]
+        })
+
+
+        input_data['WindGustDir'] = le_WindGustDir.transform(input_data['WindGustDir'])
+        input_data['WindDir9am'] = le_WindDir9am.transform(input_data['WindDir9am'])
+        input_data['WindDir3pm'] = le_WindDir3pm.transform(input_data['WindDir3pm'])
+        input_data['RainToday'] = le_RainToday.transform(input_data['RainToday'])
+
+
+        prediction = model.predict(input_data)[0]
+        proba = model.predict_proba(input_data)
+        print(f"Prediction Probabilities: {proba}")
+        print(f"\nPrediction: {'Yes, it will rain tomorrow.' if prediction == 1 else 'No, it will not rain tomorrow.'}")
+    except Exception as e:
+        print(f"Error in prediction: {e}")
+
+
+if __name__ == "__main__":
+
+    try:
+        df = pd.read_csv("/content/weatherAUS.csv")
+        x, y = preprocess_data(df)
+
+
+        check_class_balance(y)
+
+
+        train_and_save_model(x, y)
+
+
+        predict_rain()
+    except Exception as e:
+        print(f"Error: {e}")
